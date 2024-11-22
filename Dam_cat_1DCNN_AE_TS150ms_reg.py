@@ -9,7 +9,6 @@ import torch.nn.functional as F
 # check device
 device='cuda' if torch.cuda.is_available() else 'cpu'
 print(device)
-
 data = loadmat('X_FEATURE_snr35_40.mat')
 X_Feature = data.get('X_FEATURE_snr35_40')
 # Load model structure and trained model weight
@@ -54,20 +53,16 @@ class Conv1D_AE(nn.Module):
         x = x.view(-1, 32, 4)
         x = self.conv1d_decoder(x)
         return x
-
     def num_flat_features(self,x):
         size=x.size()[1:] #all dimension except the batch dimension
         num_features=1
         for s in size:
             num_features *=s
         return num_features
-
-
 ###############################################################################
 ########################### DataSset ##########################################
 ###############################################################################
 AE_trained_model = Conv1D_AE()
-
 file = 'AE_model_snr35_40.pth'
 AE_model_trained = Conv1D_AE()
 AE_model_trained.load_state_dict(torch.load(file))
@@ -87,7 +82,6 @@ print(activation['fc2'])
 """
 # out feature from Conv_autoencoder model
 X_AE_input = torch.from_numpy(X_Feature).view(2688,1,41).float().to(device)
-
 AE_feature = []
 for i in X_AE_input:
     AE_model_trained.fc_encoder.register_forward_hook(get_activation('fc_encoder'))
@@ -96,21 +90,15 @@ for i in X_AE_input:
     AE_feature.append(activation['fc_encoder'][0].view(16))
     plt.plot(activation['fc_encoder'][0].numpy())
 plt.show()
-
 # take out tensor from X_AE_out list
 X_AE_feature = torch.zeros(2688,16)
 for i in range(len(AE_feature)):
     X_AE_feature[i] = AE_feature[i]
-
-
 # Targer value for class
 t_reg = loadmat('Targ_reg_norm2.mat')
 T_reg = t_reg.get('T_Reg')
 X_Reg  = np.concatenate((T_reg, T_reg), axis=0)
-
 # Change the class value into one_hot encoder 
-
-
 # split the train and test, input and label data
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X_AE_feature, X_Reg, test_size=0.15, random_state=42)
@@ -119,7 +107,6 @@ X_train = X_train.float().to(device)
 X_test = X_test.float().to(device)
 y_train = torch.from_numpy(y_train).float().to(device)
 y_test = torch.from_numpy(y_test).float().to(device)
-
 ###############################################################################
 ############################### 1D-CNN ########################################
 ###############################################################################
@@ -143,7 +130,6 @@ class nn_model_reg(nn.Module):
         return x
 
 Cls_model = nn_model_reg().to(device)
-
 # Defining training routine
 #loss_fn = nn.MSELoss()
 #loss_fn = nn.CrossEntropyLoss()
