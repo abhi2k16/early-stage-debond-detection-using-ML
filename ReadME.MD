@@ -1,35 +1,6 @@
 # Structural Damage Detection Using 1D Convolutional Autoencoder
 
-A deep learning framework for **structural health monitoring (SHM)** and **damage detection** in structures (wind turbines, dams, PZT-instrumented panels) using 1D Convolutional Autoencoders (Conv1D-AE) with PyTorch. The pipeline covers signal preprocessing, unsupervised feature extraction, damage classification, and regression-based damage quantification.
-
----
-
-## Table of Contents
-
-- [Project Overview](#project-overview)
-- [Repository Structure](#repository-structure)
-- [Architecture](#architecture)
-- [Dataset](#dataset)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Models](#models)
-- [Results](#results)
-- [Dependencies](#dependencies)
-- [License](#license)
-
----
-
-## Project Overview
-
-This project implements an end-to-end deep learning pipeline for **non-destructive structural damage detection** using guided ultrasonic wave signals captured by PZT sensors. The framework:
-
-1. **Preprocesses** raw FEM/experimental vibration and wave propagation signals
-2. **Extracts features** using wavelet transform (CWT) and signal processing
-3. **Trains a 1D Convolutional Autoencoder** to learn compact latent representations of healthy/damaged signals
-4. **Classifies** damage categories (undamaged vs. various damage levels) using the AE bottleneck features
-5. **Quantifies** damage severity via regression on the latent space
-
-The system is validated on both **FEM-simulated** and **experimental** datasets involving off-center and on-center debonding damage scenarios at multiple SNR levels (55, 60, 65 dB).
+A deep learning framework for **structural health monitoring (SHM)** and **damage detection** in PZT-instrumented panels using 1D Convolutional Autoencoders (Conv1D-AE) with PyTorch. The pipeline covers signal preprocessing via CWT, unsupervised feature extraction, damage classification, and regression-based damage quantification.
 
 ---
 
@@ -37,40 +8,57 @@ The system is validated on both **FEM-simulated** and **experimental** datasets 
 
 ```
 .
-├── ConvAE_BNL_4.py                      # Conv1D-AE with 4-dim bottleneck layer
-├── ConvAE_BNL_8.py                      # Conv1D-AE with 8-dim bottleneck layer
-├── ConvAE_BNL_16.py                     # Conv1D-AE with 16-dim bottleneck layer
+├── ConvAE_BNL_4.py                      # Conv1D-AE model definition — 4-dim bottleneck
+├── ConvAE_BNL_8.py                      # Conv1D-AE model definition — 8-dim bottleneck
+├── ConvAE_BNL_16.py                     # Conv1D-AE model definition — 16-dim bottleneck
 │
-├── Dam_cat_1DCNN_AE_TS150ms.py          # AE training on 150ms time-series features
-├── Dam_cat_1DCNN_AE_TS150ms_cls.py      # AE + downstream classifier (damage category)
-├── Dam_cat_1DCNN_AE_TS150ms_reg.py      # AE + downstream regressor (damage size)
-├── Dam_cat_1DCNN_AE_TS150ms_reg-2.py   # AE + regressor (alternate config)
+├── Dam_cat_1DCNN_AE_TS150ms.py          # AE training script (inline model, 8-dim BNL)
+├── Dam_cat_1DCNN_AE_TS150ms_cls.py      # AE (16-dim) + downstream classifiers (SVM, RF, AdaBoost, GBC, Stack, Vote)
+├── Dam_cat_1DCNN_AE_TS150ms_reg.py      # AE (snr35_40) + downstream regressors (SVR, RF, AdaBoost, GBR, Stack, Vote)
+├── Dam_cat_1DCNN_AE_TS150ms_reg-2.py   # AE (16-dim, snr55_60_65) + downstream regressors
 │
-├── Dam_cat_class.py                     # Damage classification (standalone CNN)
-├── Dam_cat_class_TS150ms.py            # Damage classification on 150ms TS data
-├── Dam_cat_class-2.py                  # Damage classification (variant)
-├── Dam_cat_reg.py                      # Damage regression (standalone)
-├── Dam_Cat_file_handle.py              # Data file I/O utilities
+├── Dam_cat_class.py                     # Standalone FC classifier on X_feature.mat (177 samples, 4 classes)
+├── Dam_cat_class_TS150ms.py            # FC classifier on X_SubSam_TimeSegment data (1344 samples, 4 classes)
+├── Dam_cat_class-2.py                  # FC classifier variant on X_feature.mat (same architecture as TS150ms)
+├── Dam_cat_reg.py                      # FC regression on X_feature.mat (MSELoss, SGD)
+├── Dam_Cat_file_handle.py              # Loads damage category Excel files and computes FFT
 │
-├── PyTorch_stiffned_damage_autoemcoder_1.py  # AE for stiffness-based damage detection
-├── Pytorch_reg_trial.py                # Regression trial with PyTorch
+├── CAE_PCA_compare.py                  # Compares AE (4/8/16-dim) vs PCA reconstruction MSE
 │
-├── Vib_data_1DCNN_autoemcoder.py       # AE trained on raw vibration data
-├── Vib_data_1DCNN_autoemcoder_class.py # AE + classifier on vibration data
-├── Vib_data_autoemcoder_1.py           # Vibration AE baseline
+├── PyTorch_stiffned_damage_autoemcoder_1.py  # FC autoencoder (416→25→416) on StiffenDebondData2.csv
+├── Pytorch_reg_trial.py                # Minimal PyTorch linear regression demo (sin curve)
 │
-├── WT_dam_model_exp.py                 # Wind turbine damage — experimental data
-├── WT_dam_model_fem.py                 # Wind turbine damage — FEM simulation data
-├── WT_dam_model_fem-2.py              # WT FEM model (alternate preprocessing)
-├── WT_off_center_dam_model.py          # Off-center damage model for WT
-├── WT_off_dam_pzt_model.py             # PZT-based off-center damage model
+├── Vib_data_autoemcoder_1.py           # FC AE (416→25) on vibration CSV data
+├── Vib_data_1DCNN_autoemcoder.py       # Conv1D AE (416-len signals) on vibration CSV data
+├── Vib_data_1DCNN_autoemcoder_class.py # Conv1D AE + downstream 17-class classifier head
 │
-├── Scatter_anl_WT.py                   # Scatter analysis and wave propagation plots
-├── SVR_Trial.py                        # Support Vector Regression baseline
-├── load_save_model.py                  # Model checkpoint save/load utilities
+├── WT_dam_model_fem.py                 # CWT scalogram of FEM .rpt signal (3-column, 140 kHz)
+├── WT_dam_model_fem-2.py              # CWT scalogram of FEM .rpt signal (2-column variant)
+├── WT_off_center_dam_model.py          # CWT + Hilbert transform + debonding location estimation
+├── WT_off_dam_pzt_model.py             # CWT scalogram of off-center PZT FEM data
+├── WT_dam_model_exp.py                 # CWT scalogram of experimental PZT scope data (.xlsx)
 │
-├── train_loss_fcl_4.txt                # Training loss log (bottleneck=4)
-└── ReadME.MD                           # This file
+├── Scatter_anl_WT.py                   # Scatter signal analysis: CWT + WTC plot from .rpt files
+├── SVR_Trial.py                        # SVR baseline demo (RBF / Linear / Poly kernels on sin data)
+├── load_save_model.py                  # Load pretrained Conv1D_AE from AE_model.pth
+│
+├── AE_CF_4_snr55_60_65*.pth            # Saved weights — BNL-4 model
+├── AE_CF_8_snr55_60_65*.pth            # Saved weights — BNL-8 model
+├── AE_CF_16_snr55_60_65*.pth           # Saved weights — BNL-16 model
+├── AE_model*.pth                       # Saved weights — other AE variants
+│
+├── X_FEATURE_snr55_60_65.mat           # CWT features at SNR 55/60/65 dB (3600 × 41)
+├── X_FEATURE_snr35_40.mat              # CWT features at SNR 35/40 dB (2688 × 41)
+├── X_FEATURE_snr100_50.mat             # CWT features at SNR 100/50 dB
+├── X_FEATURE_snr30_35.mat              # CWT features at SNR 30/35 dB
+├── X_feature.mat                       # Raw CWT features (177 samples × 41)
+├── X_SubSam_TimeSegment_norm_feature*.mat  # Sub-sampled time-segment features
+├── X_SubSam_TimeSegment_target.mat     # Targets for time-segment data
+├── Targ_reg_norm*.mat                  # Normalized regression targets (debonding size)
+├── T_reg.mat / Targ_reg.mat            # Raw regression targets
+├── StiffenDebondData2.csv              # Stiffness-based debond dataset (5434 × 417)
+│
+└── train_loss_fcl_4.txt                # Training loss log (BNL-4 run)
 ```
 
 ---
@@ -79,97 +67,70 @@ The system is validated on both **FEM-simulated** and **experimental** datasets 
 
 ### 1D Convolutional Autoencoder (Conv1D-AE)
 
-The core model follows an **encoder–bottleneck–decoder** architecture operating on 1D signal windows of length 41.
+Encoder–bottleneck–decoder operating on 1D signal windows of length 41.
 
 ```
 Input (1 × 41)
     │
     ▼
-┌─────────────────────────────────┐
-│  ENCODER                        │
-│  Conv1d(1→32, k=4, s=2) + BN   │
-│  Conv1d(32→64, k=4, s=2) + BN  │
-│  Conv1d(64→128, k=4, s=1) + BN │
-│  Flatten → FC(640→320→80→N)     │
-│  Bottleneck: N = {4, 8, 16}     │
-└─────────────────────────────────┘
-    │
-    ▼  Latent Space (N-dim features)
-    │
-┌─────────────────────────────────┐
-│  DECODER                        │
-│  FC(N→16→80→320→640)            │
-│  Reshape → ConvTranspose1d ×3   │
-│  Output (1 × 41)                │
-└─────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  ENCODER                            │
+│  Conv1d(1→32, k=4, s=2) + BN       │
+│  Conv1d(32→64, k=4, s=2) + BN      │
+│  Conv1d(64→128, k=4, s=1) + BN     │
+│  Flatten → FC(640→320→80→16→N)     │
+│  Bottleneck: N ∈ {4, 8, 16}        │
+└─────────────────────────────────────┘
+    │  Latent Space (N-dim)
+    ▼
+┌─────────────────────────────────────┐
+│  DECODER                            │
+│  FC(N→16→80→320→640) + Tanh        │
+│  Reshape → ConvTranspose1d ×3       │
+│  Output (1 × 41)                    │
+└─────────────────────────────────────┘
 ```
 
-Three bottleneck variants are provided — **4-dim**, **8-dim**, and **16-dim** — allowing comparison of reconstruction quality vs. compression ratio.
+Three bottleneck variants: **4-dim**, **8-dim**, **16-dim**.
 
 ### Downstream Tasks
 
-After training the autoencoder, the **bottleneck features** are used as inputs to:
+Bottleneck features feed into:
 
-| Task | Model | Output |
+| Task | Script | Classifiers / Models |
 |---|---|---|
-| Damage Classification | FCN / CNN classifier | Damage category label |
-| Damage Quantification | FC Regression network | Damage size (mm) |
-| Anomaly Detection | Reconstruction error | Damage / No-damage score |
+| Damage Classification | `Dam_cat_1DCNN_AE_TS150ms_cls.py` | SVM, RF, AdaBoost, GBC, Stacking, Voting |
+| Damage Regression | `Dam_cat_1DCNN_AE_TS150ms_reg.py` / `reg-2.py` | SVR, RFR, AdaBoost, GBR, Stacking, Voting |
+| Anomaly Detection | Reconstruction MSE | Elevated error → damage |
+| AE vs PCA | `CAE_PCA_compare.py` | MSE comparison across component counts |
 
 ---
 
 ## Dataset
 
-The models are trained and evaluated on:
-
-| Data Source | Description |
+| File | Description |
 |---|---|
-| `X_FEATURE_snr55_60_65.mat` | Extracted signal features at SNR 55, 60, 65 dB |
-| FEM `.rpt` files | ABAQUS FEM simulation output (displacement time-series) |
-| Experimental data | PZT sensor recordings on physical specimens |
+| `X_FEATURE_snr55_60_65.mat` | 3600 × 41 CWT features, SNR 55/60/65 dB |
+| `X_FEATURE_snr35_40.mat` | 2688 × 41 CWT features, SNR 35/40 dB |
+| `X_feature.mat` | 177 × 41 features (initial small dataset) |
+| `StiffenDebondData2.csv` | 5434 samples × 416 features, stiffness-based debond |
+| FEM `.rpt` files | ABAQUS displacement time-series output |
+| Experimental `.xlsx` | PZT scope recordings on physical specimens |
 
-**Damage scenarios include:**
+**Damage scenarios:**
 - Undamaged (healthy baseline)
 - On-center debonding at 10 mm
-- Off-center debonding at 10 mm (at positions 100, 120, 140, 160, 170, 180 mm)
+- Off-center debonding at 10 mm (positions: 100, 120, 140, 160, 170, 180, 215 mm)
 
-Signal features are extracted using **Continuous Wavelet Transform (CWT)** with 8 voices per octave over 10–600 kHz.
+Signal features extracted via **CWT** (obspy), 8 voices/octave, 10–600 kHz.
 
 ---
 
 ## Installation
 
-### Requirements
-
-- Python 3.8+
-- PyTorch 1.10+
-- CUDA (optional, for GPU acceleration)
-
-### Install Dependencies
-
 ```bash
 pip install torch torchvision torchaudio
-pip install numpy scipy matplotlib scikit-learn
-pip install obspy mlxtend pandas
-```
-
-Or install all at once:
-
-```bash
-pip install -r requirements.txt
-```
-
-### requirements.txt
-
-```
-torch>=1.10.0
-numpy>=1.21
-scipy>=1.7
-matplotlib>=3.4
-scikit-learn>=0.24
-obspy>=1.3
-mlxtend>=0.19
-pandas>=1.3
+pip install numpy scipy matplotlib scikit-learn obspy mlxtend pandas openpyxl
 ```
 
 ---
@@ -178,37 +139,47 @@ pandas>=1.3
 
 ### 1. Train the Autoencoder
 
-Select the desired bottleneck size (4, 8, or 16):
-
 ```bash
 python Dam_cat_1DCNN_AE_TS150ms.py
 ```
 
-This will:
-- Load `X_FEATURE_snr55_60_65.mat`
-- Train the Conv1D-AE for 15,000 epochs
-- Plot training loss (log scale)
-- Visualize reconstructed signals
+Loads `X_FEATURE_snr55_60_65.mat`, trains Conv1D-AE for 15,000 epochs (Adam, lr=0.005, batch=120), plots log-scale training loss and reconstructed signals.
 
-### 2. Train Damage Classifier
-
-After training and saving the AE model weights:
+### 2. Train Damage Classifier (AE features → SVM / RF / ensemble)
 
 ```bash
 python Dam_cat_1DCNN_AE_TS150ms_cls.py
 ```
 
-This loads the pretrained AE (`AE_CF_16_snr55_60_65-2.pth`), extracts bottleneck features, and trains a downstream fully-connected classifier. Outputs include confusion matrices and per-class accuracy.
+Loads pretrained `AE_CF_16_snr55_60_65-2.pth`, extracts 16-dim bottleneck features via forward hook, trains and evaluates SVM, RF, AdaBoost, GBC, Stacking, and Voting classifiers. Outputs confusion matrices, ROC curves, and precision-recall curves.
 
 ### 3. Train Damage Regression Model
 
 ```bash
-python Dam_cat_1DCNN_AE_TS150ms_reg.py
+python Dam_cat_1DCNN_AE_TS150ms_reg-2.py   # uses snr55_60_65 + AE-16 features
+python Dam_cat_1DCNN_AE_TS150ms_reg.py     # uses snr35_40 features
 ```
 
-Trains a regression head on top of AE features to predict damage size in mm.
+Trains SVR, RFR, AdaBoost, GBR, Stacking, and Voting regressors. Reports R² scores and plots predicted vs. actual debonding size.
 
-### 4. Save and Load Models
+### 4. Compare AE vs PCA Reconstruction
+
+```bash
+python CAE_PCA_compare.py
+```
+
+Computes per-sample MSE for AE (4/8/16-dim) and PCA (4/15 components) and plots average reconstruction error vs. number of components.
+
+### 5. Signal Preprocessing (CWT Scalogram)
+
+```bash
+python WT_dam_model_fem.py        # FEM .rpt → CWT scalogram
+python WT_dam_model_exp.py        # Experimental .xlsx → CWT scalogram
+python WT_off_center_dam_model.py # CWT + Hilbert + debonding location estimate
+python Scatter_anl_WT.py          # Scatter signal CWT analysis
+```
+
+### 6. Save / Load Model
 
 ```python
 # Save
@@ -221,44 +192,20 @@ model.load_state_dict(torch.load('AE_CF_16_snr55_60_65-2.pth'))
 model.eval()
 ```
 
-See `load_save_model.py` for full utilities.
-
-### 5. Signal Preprocessing (FEM/Experimental)
-
-For wavelet transform processing of FEM `.rpt` output files:
-
-```bash
-python WT_dam_model_fem.py
-```
+See `load_save_model.py` for a self-contained example.
 
 ---
 
-## Models
-
-| File | Bottleneck | Purpose |
-|---|---|---|
-| `ConvAE_BNL_4.py` | 4-dim | Maximum compression |
-| `ConvAE_BNL_8.py` | 8-dim | Balanced compression |
-| `ConvAE_BNL_16.py` | 16-dim | Best reconstruction quality |
-
-### Training Configuration
+## Training Configuration
 
 | Parameter | Value |
 |---|---|
 | Optimizer | Adam |
 | Learning Rate | 0.005 |
 | Weight Decay | 1e-5 |
-| Loss Function | MSELoss |
+| Loss | MSELoss |
 | Batch Size | 120 |
-| Max Epochs | 15,000 |
-
----
-
-## Results
-
-Training loss is logged in `train_loss_fcl_4.txt`. The autoencoder achieves low reconstruction error on healthy signals; damaged signals produce **elevated reconstruction error**, forming the basis for anomaly detection.
-
-Downstream classifiers achieve high accuracy across damage categories when trained on the 16-dim bottleneck features. Regression models predict debonding sizes with low mean absolute error.
+| Epochs | 15,000 |
 
 ---
 
@@ -266,20 +213,14 @@ Downstream classifiers achieve high accuracy across damage categories when train
 
 | Library | Purpose |
 |---|---|
-| `torch` | Deep learning framework |
+| `torch` | Deep learning (AE, classifiers, regressors) |
 | `numpy` | Numerical computation |
-| `scipy` | Signal processing, `.mat` file loading |
+| `scipy` | `.mat` file loading, signal processing |
 | `matplotlib` | Visualization |
 | `obspy` | Continuous Wavelet Transform (CWT) |
-| `scikit-learn` | PCA, SVR baseline models |
+| `scikit-learn` | PCA, SVM, RF, ensemble models, metrics |
 | `mlxtend` | Confusion matrix plotting |
-| `pandas` | Data handling for FEM outputs |
-
----
-
-## Citation
-
-If you use this code in your research, please cite accordingly.
+| `pandas` | FEM `.rpt` / `.xlsx` data loading |
 
 ---
 
