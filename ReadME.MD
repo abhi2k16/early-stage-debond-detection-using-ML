@@ -223,7 +223,6 @@ See `load_save_model.py` for a self-contained example.
 | `pandas` | FEM `.rpt` / `.xlsx` data loading |
 
 ---
-
+- Original paper: [Early-Stage Debonding Detection and Assessment]..(https://doi.org/10.1115/1.4064612)
 ## License
-
 This project is for research and academic use. Please contact the authors for commercial use inquiries.
